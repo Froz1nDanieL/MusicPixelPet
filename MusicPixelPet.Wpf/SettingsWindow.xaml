@@ -1,0 +1,120 @@
+<Window x:Class="MusicPetDesktop.SettingsWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+        Title="Music Pixel Pet Settings"
+        Width="340"
+        Height="520"
+        MinHeight="420"
+        MaxWidth="340"
+        ResizeMode="NoResize"
+        WindowStyle="None"
+        Background="#FFFFFFFF"
+        ShowInTaskbar="False">
+    <DockPanel Margin="16">
+        <ui:Card DockPanel.Dock="Top" Padding="12" MouseLeftButtonDown="Header_OnMouseLeftButtonDown">
+            <Grid>
+                <TextBlock Text="桌宠设置"
+                           FontWeight="SemiBold"
+                           FontSize="15"
+                           VerticalAlignment="Center" />
+                <ui:Button Content="关闭"
+                           HorizontalAlignment="Right"
+                           Command="{Binding CloseCommand}" />
+            </Grid>
+        </ui:Card>
+
+        <ui:Card DockPanel.Dock="Bottom" Padding="12" Margin="0,12,0,0">
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                <ui:Button Content="取消"
+                           Command="{Binding CloseCommand}" />
+                <ui:Button Content="保存"
+                           Margin="8,0,0,0"
+                           Command="{Binding SaveCommand}" />
+            </StackPanel>
+        </ui:Card>
+
+        <ScrollViewer VerticalScrollBarVisibility="Auto" Margin="0,12,0,0">
+            <StackPanel>
+                <ui:Card Padding="12" Margin="0,0,0,10">
+                    <StackPanel>
+                        <TextBlock Text="皮肤" Foreground="#757575" FontSize="13" />
+                        <ComboBox SelectedValue="{Binding SkinId}"
+                                  SelectedValuePath="Content"
+                                  Height="34"
+                                  Margin="0,6,0,0">
+                            <ComboBoxItem Content="default" />
+                        </ComboBox>
+
+                        <CheckBox Content="始终置顶"
+                                  Margin="0,14,0,0"
+                                  IsChecked="{Binding AlwaysOnTop}" />
+                        <CheckBox Content="开机自启动"
+                                  Margin="0,10,0,0"
+                                  IsChecked="{Binding AutoLaunch}" />
+                        <CheckBox Content="允许滚轮调节音量"
+                                  Margin="0,10,0,0"
+                                  IsChecked="{Binding WheelVolumeEnabled}" />
+
+                        <TextBlock Text="控制栏显示方式"
+                                   Foreground="#757575"
+                                   FontSize="13"
+                                   Margin="0,14,0,6" />
+                        <ComboBox ItemsSource="{Binding ControlBarModes}"
+                                  SelectedItem="{Binding ControlBarMode}"
+                                  Height="34" />
+
+                        <TextBlock Text="目标播放器白名单"
+                                   Foreground="#757575"
+                                   FontSize="13"
+                                   Margin="0,14,0,6" />
+                        <TextBox Text="{Binding PlayerWhitelistText, UpdateSourceTrigger=PropertyChanged}"
+                                 Height="34"
+                                 Padding="8,5" />
+                    </StackPanel>
+                </ui:Card>
+
+                <ui:Card Padding="12">
+                    <StackPanel>
+                        <Grid Margin="0,0,0,10">
+                            <TextBlock Text="歌曲规则"
+                                       FontWeight="SemiBold"
+                                       VerticalAlignment="Center" />
+                            <ui:Button Content="添加"
+                                       HorizontalAlignment="Right"
+                                       Command="{Binding AddRuleCommand}" />
+                        </Grid>
+
+                        <ItemsControl ItemsSource="{Binding MusicRules}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <ui:Card Padding="10" Margin="0,0,0,8">
+                                        <StackPanel>
+                                            <TextBox Text="{Binding Keyword, UpdateSourceTrigger=PropertyChanged}"
+                                                     Height="34"
+                                                     Padding="8,5" />
+                                            <ComboBox ItemsSource="{Binding DataContext.RuleFields, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                      SelectedItem="{Binding Field}"
+                                                      Height="34"
+                                                      Margin="0,8,0,0" />
+                                            <ComboBox ItemsSource="{Binding DataContext.RuleModes, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                      SelectedItem="{Binding Mode}"
+                                                      Height="34"
+                                                      Margin="0,8,0,0" />
+                                            <ui:Button Content="删除"
+                                                       Margin="0,8,0,0"
+                                                       HorizontalAlignment="Right"
+                                                       Foreground="#BB4D4D"
+                                                       Command="{Binding DataContext.RemoveRuleCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                       CommandParameter="{Binding}" />
+                                        </StackPanel>
+                                    </ui:Card>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+                </ui:Card>
+            </StackPanel>
+        </ScrollViewer>
+    </DockPanel>
+</Window>

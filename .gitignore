@@ -1,0 +1,11 @@
+node_modules/
+dist/
+dist-electron/
+release/
+.runtime/
+native-helper/**/bin/
+native-helper/**/obj/
+MusicPixelPet.Wpf/**/bin/
+MusicPixelPet.Wpf/**/obj/
+release-tmp/
+.tmp/

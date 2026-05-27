@@ -1,0 +1,31 @@
+{
+  "name": "music-pixel-pet",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "dist-electron/main.mjs",
+  "scripts": {
+    "dev": "vite",
+    "build": "npm run build:helper && vite build && electron-builder",
+    "build:renderer": "vite build",
+    "build:helper": "dotnet build .\\native-helper\\MusicPixelPet.Helper\\MusicPixelPet.Helper.csproj -c Release",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "electron-store": "^10.0.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "zustand": "^5.0.2"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "@vitejs/plugin-react": "^4.3.4",
+    "electron": "^33.2.0",
+    "electron-builder": "^25.1.8",
+    "typescript": "^5.7.2",
+    "vite": "^6.0.3",
+    "vite-plugin-electron": "^0.29.0"
+  }
+}
