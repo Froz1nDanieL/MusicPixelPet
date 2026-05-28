@@ -44,14 +44,22 @@ public sealed record MediaSnapshot(
     }
 }
 
+public readonly record struct SpectrumData(
+    float Rms,
+    float Bass,
+    float Mid,
+    float High);
+
 public sealed class BeatEventArgs : EventArgs
 {
-    public BeatEventArgs(float level, DateTimeOffset detectedAt)
+    public BeatEventArgs(float level, DateTimeOffset detectedAt, float bpm)
     {
         Level = level;
         DetectedAt = detectedAt;
+        Bpm = bpm;
     }
 
     public float Level { get; }
     public DateTimeOffset DetectedAt { get; }
+    public float Bpm { get; }
 }

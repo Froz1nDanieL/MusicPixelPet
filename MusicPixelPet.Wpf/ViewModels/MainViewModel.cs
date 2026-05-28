@@ -38,7 +38,13 @@ public partial class MainViewModel : ObservableObject
     private ImageSource? petFrame;
 
     [ObservableProperty]
+    private SpectrumData spectrum;
+
+    [ObservableProperty]
     private float audioLevel;
+
+    [ObservableProperty]
+    private float bpm;
 
     public MainViewModel(MediaService mediaService, AudioAnalyzerService audioAnalyzerService, SettingsService settingsService)
     {
@@ -49,11 +55,16 @@ public partial class MainViewModel : ObservableObject
         _settingsService.SettingsChanged += (_, nextSettings) => RunOnUiThread(() => Settings = nextSettings);
         _mediaService.Ready += (_, _) => RunOnUiThread(() => IsReady = true);
         _mediaService.SnapshotChanged += (_, snapshot) => RunOnUiThread(() => Media = snapshot);
-        _audioAnalyzerService.LevelChanged += (_, level) => RunOnUiThread(() => AudioLevel = level);
-        _audioAnalyzerService.BeatDetected += (_, _) =>
+        _audioAnalyzerService.SpectrumAnalyzed += (_, data) => RunOnUiThread(() =>
+        {
+            Spectrum = data;
+            AudioLevel = data.Rms;
+        });
+        _audioAnalyzerService.BeatDetected += (_, beat) =>
         {
             RunOnUiThread(() =>
             {
+                Bpm = beat.Bpm;
                 if (!CanShowBeatAnimation())
                 {
                     return;
