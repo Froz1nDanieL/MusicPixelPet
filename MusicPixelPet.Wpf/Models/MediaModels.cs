@@ -8,6 +8,16 @@ public enum PlaybackStatus
     Unknown
 }
 
+public enum MusicVibe
+{
+    Silence,
+    AmbientOrClassical,
+    AcousticOrFolk,
+    Pop,
+    RockOrMetal,
+    ElectronicOrHipHop
+}
+
 public sealed record MediaTrack(
     string Title,
     string Artist,

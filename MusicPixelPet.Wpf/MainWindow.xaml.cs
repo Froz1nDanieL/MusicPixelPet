@@ -2,6 +2,7 @@ using System.Windows;
 using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using Hardcodet.Wpf.TaskbarNotification;
+using MusicPixelPet.Wpf.Models;
 using MusicPixelPet.Wpf.Pet;
 using MusicPixelPet.Wpf.Services;
 using MusicPixelPet.Wpf.ViewModels;
@@ -75,6 +76,7 @@ public partial class MainWindow : Window
         };
 
         _viewModel.OpenSettingsRequested += (_, _) => OpenSettingsWindow();
+        _audioAnalyzerService.BeatDetected += AudioAnalyzerService_OnBeatDetected;
         _petFrameAnimator.FrameChanged += (_, frame) => _viewModel.PetFrame = frame;
         _petFrameAnimator.Start();
         UpdateWaveformPlaybackState();
@@ -97,6 +99,8 @@ public partial class MainWindow : Window
     protected override void OnClosed(EventArgs e)
     {
         _waveformTimer.Stop();
+        _audioAnalyzerService.BeatDetected -= AudioAnalyzerService_OnBeatDetected;
+        _viewModel.Dispose();
         _trayIcon.Dispose();
         _petFrameAnimator.Dispose();
         _audioAnalyzerService.Dispose();
@@ -310,6 +314,40 @@ public partial class MainWindow : Window
             };
             _waveBars[index].BeginAnimation(FrameworkElement.HeightProperty, animation, HandoffBehavior.SnapshotAndReplace);
         }
+    }
+
+    private void AudioAnalyzerService_OnBeatDetected(object? sender, BeatEventArgs e)
+    {
+        Dispatcher.BeginInvoke(PlayPetBeatBounce, DispatcherPriority.Render);
+    }
+
+    private void PlayPetBeatBounce()
+    {
+        var duration = new Duration(TimeSpan.FromMilliseconds(68));
+        var easing = new QuadraticEase { EasingMode = EasingMode.EaseOut };
+
+        var scaleXAnimation = new DoubleAnimation
+        {
+            From = 1,
+            To = 1.05,
+            Duration = duration,
+            AutoReverse = true,
+            FillBehavior = FillBehavior.Stop,
+            EasingFunction = easing
+        };
+
+        var scaleYAnimation = new DoubleAnimation
+        {
+            From = 1,
+            To = 0.92,
+            Duration = duration,
+            AutoReverse = true,
+            FillBehavior = FillBehavior.Stop,
+            EasingFunction = easing
+        };
+
+        PetScaleTransform.BeginAnimation(ScaleTransform.ScaleXProperty, scaleXAnimation, HandoffBehavior.SnapshotAndReplace);
+        PetScaleTransform.BeginAnimation(ScaleTransform.ScaleYProperty, scaleYAnimation, HandoffBehavior.SnapshotAndReplace);
     }
 
     private void HoverSurface_OnMouseEnter(object sender, MouseEventArgs e)

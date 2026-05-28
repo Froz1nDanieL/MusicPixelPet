@@ -5,19 +5,27 @@ using MusicPixelPet.Wpf.Pet;
 using MusicPixelPet.Wpf.Services;
 using System.Windows;
 using System.Windows.Media;
+using System.Windows.Threading;
 
 namespace MusicPixelPet.Wpf.ViewModels;
 
-public partial class MainViewModel : ObservableObject
+public partial class MainViewModel : ObservableObject, IDisposable
 {
-    private static readonly TimeSpan BeatAnimationArmDelay = TimeSpan.FromMilliseconds(900);
-    private static readonly TimeSpan BeatAnimationMinGap = TimeSpan.FromMilliseconds(900);
+    private static readonly TimeSpan SpectrumUiInterval = TimeSpan.FromMilliseconds(50);
+    private static readonly TimeSpan VibeEvaluationInterval = TimeSpan.FromMilliseconds(500);
+    private static readonly TimeSpan BeatUiMinimumGap = TimeSpan.FromMilliseconds(120);
 
     private readonly MediaService _mediaService;
     private readonly AudioAnalyzerService _audioAnalyzerService;
     private readonly SettingsService _settingsService;
-    private DateTimeOffset _playingAnimationEnteredAt = DateTimeOffset.MinValue;
-    private DateTimeOffset _lastBeatAnimationAt = DateTimeOffset.MinValue;
+    private readonly PetAnimationRules _petAnimationRules = new();
+    private readonly object _audioStateSyncRoot = new();
+    private readonly DispatcherTimer _spectrumUiTimer;
+    private readonly DispatcherTimer _vibeEvaluationTimer;
+    private SpectrumData _latestSpectrum;
+    private float _latestBpm;
+    private DateTimeOffset _lastBeatUiUpdateAt = DateTimeOffset.MinValue;
+    private bool _hasPendingSpectrum;
 
     [ObservableProperty]
     private AppSettings settings = AppSettings.CreateDefault();
@@ -46,35 +54,34 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty]
     private float bpm;
 
+    [ObservableProperty]
+    private MusicVibe currentVibe = MusicVibe.Silence;
+
     public MainViewModel(MediaService mediaService, AudioAnalyzerService audioAnalyzerService, SettingsService settingsService)
     {
         _mediaService = mediaService;
         _audioAnalyzerService = audioAnalyzerService;
         _settingsService = settingsService;
+        _spectrumUiTimer = new DispatcherTimer(DispatcherPriority.Render)
+        {
+            Interval = SpectrumUiInterval
+        };
+        _spectrumUiTimer.Tick += (_, _) => FlushSpectrumToUi();
+
+        _vibeEvaluationTimer = new DispatcherTimer(DispatcherPriority.Background)
+        {
+            Interval = VibeEvaluationInterval
+        };
+        _vibeEvaluationTimer.Tick += (_, _) => RefreshPetAnimation();
 
         _settingsService.SettingsChanged += (_, nextSettings) => RunOnUiThread(() => Settings = nextSettings);
         _mediaService.Ready += (_, _) => RunOnUiThread(() => IsReady = true);
         _mediaService.SnapshotChanged += (_, snapshot) => RunOnUiThread(() => Media = snapshot);
-        _audioAnalyzerService.SpectrumAnalyzed += (_, data) => RunOnUiThread(() =>
-        {
-            Spectrum = data;
-            AudioLevel = data.Rms;
-        });
-        _audioAnalyzerService.BeatDetected += (_, beat) =>
-        {
-            RunOnUiThread(() =>
-            {
-                Bpm = beat.Bpm;
-                if (!CanShowBeatAnimation())
-                {
-                    return;
-                }
+        _audioAnalyzerService.SpectrumAnalyzed += (_, data) => CacheLatestSpectrum(data);
+        _audioAnalyzerService.BeatDetected += (_, beat) => CacheBeat(beat);
 
-                _lastBeatAnimationAt = DateTimeOffset.Now;
-                CurrentAnimation = PetAnimationId.Celebrating;
-                _ = ReturnToPlayingAfterBeatAsync();
-            });
-        };
+        _spectrumUiTimer.Start();
+        _vibeEvaluationTimer.Start();
     }
 
     public bool ControlBarVisible => Settings.ControlBarMode == ControlBarDisplayMode.Always || IsHovered;
@@ -117,27 +124,19 @@ public partial class MainViewModel : ObservableObject
 
     partial void OnMediaChanged(MediaSnapshot value)
     {
-        CurrentAnimation = PetAnimationRules.Derive(value, Settings.MusicRules);
+        RefreshPetAnimation();
         OnMediaDependentPropertiesChanged();
     }
 
     partial void OnSettingsChanged(AppSettings value)
     {
-        CurrentAnimation = PetAnimationRules.Derive(Media, value.MusicRules);
+        RefreshPetAnimation();
         OnPropertyChanged(nameof(ControlBarVisible));
     }
 
     partial void OnIsHoveredChanged(bool value)
     {
         OnPropertyChanged(nameof(ControlBarVisible));
-    }
-
-    partial void OnCurrentAnimationChanged(PetAnimationId value)
-    {
-        if (value == PetAnimationId.Playing)
-        {
-            _playingAnimationEnteredAt = DateTimeOffset.Now;
-        }
     }
 
     [RelayCommand]
@@ -174,22 +173,10 @@ public partial class MainViewModel : ObservableObject
 
     public event EventHandler? OpenSettingsRequested;
 
-    private async Task ReturnToPlayingAfterBeatAsync()
+    public void Dispose()
     {
-        await Task.Delay(380);
-        if (Media.Status == PlaybackStatus.Playing)
-        {
-            CurrentAnimation = PetAnimationRules.Derive(Media, Settings.MusicRules);
-        }
-    }
-
-    private bool CanShowBeatAnimation()
-    {
-        var now = DateTimeOffset.Now;
-        return Media.Status == PlaybackStatus.Playing
-            && CurrentAnimation == PetAnimationId.Playing
-            && now - _playingAnimationEnteredAt >= BeatAnimationArmDelay
-            && now - _lastBeatAnimationAt >= BeatAnimationMinGap;
+        _spectrumUiTimer.Stop();
+        _vibeEvaluationTimer.Stop();
     }
 
     private void OnMediaDependentPropertiesChanged()
@@ -203,6 +190,68 @@ public partial class MainViewModel : ObservableObject
         OnPropertyChanged(nameof(StatusSubtitle));
         OnPropertyChanged(nameof(VolumeLevel));
         OnPropertyChanged(nameof(IsPlaying));
+    }
+
+    private void RefreshPetAnimation()
+    {
+        CurrentAnimation = _petAnimationRules.Derive(Media, Spectrum, Bpm);
+        CurrentVibe = _petAnimationRules.CurrentVibe;
+    }
+
+    private void CacheLatestSpectrum(SpectrumData data)
+    {
+        lock (_audioStateSyncRoot)
+        {
+            _latestSpectrum = data;
+            _hasPendingSpectrum = true;
+        }
+    }
+
+    private void CacheBeat(BeatEventArgs beat)
+    {
+        lock (_audioStateSyncRoot)
+        {
+            _latestBpm = beat.Bpm;
+        }
+
+        var now = DateTimeOffset.Now;
+        if (now - _lastBeatUiUpdateAt < BeatUiMinimumGap)
+        {
+            return;
+        }
+
+        _lastBeatUiUpdateAt = now;
+        Application.Current.Dispatcher.BeginInvoke(FlushBeatToUi, DispatcherPriority.Background);
+    }
+
+    private void FlushSpectrumToUi()
+    {
+        SpectrumData nextSpectrum;
+        lock (_audioStateSyncRoot)
+        {
+            if (!_hasPendingSpectrum)
+            {
+                return;
+            }
+
+            nextSpectrum = _latestSpectrum;
+            _hasPendingSpectrum = false;
+        }
+
+        Spectrum = nextSpectrum;
+        AudioLevel = nextSpectrum.Rms;
+    }
+
+    private void FlushBeatToUi()
+    {
+        float nextBpm;
+        lock (_audioStateSyncRoot)
+        {
+            nextBpm = _latestBpm;
+        }
+
+        Bpm = nextBpm;
+        RefreshPetAnimation();
     }
 
     private string BuildTrackSubtitle()

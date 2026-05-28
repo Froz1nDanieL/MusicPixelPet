@@ -177,13 +177,23 @@
             </Grid>
         </Border>
 
-        <Grid Grid.Row="0"
+        <Grid x:Name="PetVisual"
+              Grid.Row="0"
               Width="170"
               Height="146"
               HorizontalAlignment="Center"
               VerticalAlignment="Bottom"
               Cursor="Hand"
+              RenderTransformOrigin="0.5,1"
               MouseLeftButtonDown="PetSurface_OnMouseLeftButtonDown">
+            <Grid.RenderTransform>
+                <TransformGroup>
+                    <ScaleTransform x:Name="PetScaleTransform"
+                                    ScaleX="1"
+                                    ScaleY="1" />
+                </TransformGroup>
+            </Grid.RenderTransform>
+
             <Image Source="{Binding PetFrame}"
                    Width="128"
                    Height="128"

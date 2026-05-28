@@ -11,6 +11,8 @@ public sealed class AudioAnalyzerService : IDisposable
     private const float SilenceFloor = 0.000001f;
     private const float BassNoiseFloor = 0.0025f;
     private const float BassBeatMultiplier = 1.5f;
+    private const float SpectrumSmoothingNewWeight = 0.3f;
+    private const float SpectrumSmoothingPreviousWeight = 0.7f;
     private static readonly TimeSpan BeatMinimumGap = TimeSpan.FromMilliseconds(250);
     private static readonly TimeSpan BeatHistoryWindow = TimeSpan.FromSeconds(5);
 
@@ -26,8 +28,10 @@ public sealed class AudioAnalyzerService : IDisposable
     private int _bufferIndex;
     private int _sampleRate = 44100;
     private float _rollingBass;
+    private SpectrumData _smoothedSpectrum;
     private DateTimeOffset _lastBeatAt = DateTimeOffset.MinValue;
     private bool _isRunning;
+    private bool _hasSmoothedSpectrum;
 
     public AudioAnalyzerService()
     {
@@ -54,6 +58,7 @@ public sealed class AudioAnalyzerService : IDisposable
                 _waveFormat = _capture.WaveFormat;
                 _sampleRate = _waveFormat.SampleRate;
                 _bufferIndex = 0;
+                _hasSmoothedSpectrum = false;
                 ResetBeatState();
                 _capture.DataAvailable += OnDataAvailable;
                 _capture.RecordingStopped += OnRecordingStopped;
@@ -93,6 +98,7 @@ public sealed class AudioAnalyzerService : IDisposable
 
             _waveFormat = null;
             _isRunning = false;
+            _hasSmoothedSpectrum = false;
             ResetBeatState();
         }
     }
@@ -152,10 +158,12 @@ public sealed class AudioAnalyzerService : IDisposable
 
     private void AnalyzeCurrentBuffer()
     {
-        var spectrum = AnalyzeSamples(_sampleBuffer, _sampleRate, _fftBuffer, _window);
-        SpectrumAnalyzed?.Invoke(this, spectrum);
-        LevelChanged?.Invoke(this, spectrum.Rms);
-        DetectBeat(spectrum);
+        var rawSpectrum = AnalyzeSamples(_sampleBuffer, _sampleRate, _fftBuffer, _window);
+        DetectBeat(rawSpectrum);
+
+        var smoothedSpectrum = SmoothSpectrum(rawSpectrum);
+        SpectrumAnalyzed?.Invoke(this, smoothedSpectrum);
+        LevelChanged?.Invoke(this, smoothedSpectrum.Rms);
     }
 
     public static SpectrumData AnalyzeSamples(ReadOnlySpan<float> samples, int sampleRate)
@@ -249,6 +257,29 @@ public sealed class AudioAnalyzerService : IDisposable
         _lastBeatAt = now;
         var bpm = UpdateBpm(now);
         BeatDetected?.Invoke(this, new BeatEventArgs(bass, now, bpm));
+    }
+
+    private SpectrumData SmoothSpectrum(SpectrumData next)
+    {
+        if (!_hasSmoothedSpectrum)
+        {
+            _smoothedSpectrum = next;
+            _hasSmoothedSpectrum = true;
+            return _smoothedSpectrum;
+        }
+
+        _smoothedSpectrum = new SpectrumData(
+            Rms: LowPass(next.Rms, _smoothedSpectrum.Rms),
+            Bass: LowPass(next.Bass, _smoothedSpectrum.Bass),
+            Mid: LowPass(next.Mid, _smoothedSpectrum.Mid),
+            High: LowPass(next.High, _smoothedSpectrum.High));
+
+        return _smoothedSpectrum;
+    }
+
+    private static float LowPass(float next, float previous)
+    {
+        return next * SpectrumSmoothingNewWeight + previous * SpectrumSmoothingPreviousWeight;
     }
 
     private float UpdateBpm(DateTimeOffset detectedAt)
