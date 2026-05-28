@@ -339,12 +339,12 @@ public sealed class MediaService : IDisposable
     {
         if (sourceAppId.Contains("cloudmusic", StringComparison.OrdinalIgnoreCase))
         {
-            return "NetEase Cloud Music";
+            return "网易云音乐";
         }
 
         if (sourceAppId.Contains("qqmusic", StringComparison.OrdinalIgnoreCase))
         {
-            return "QQ Music";
+            return "QQ音乐";
         }
 
         return sourceAppId;

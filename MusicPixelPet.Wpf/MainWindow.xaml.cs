@@ -7,6 +7,7 @@ using MusicPixelPet.Wpf.Services;
 using MusicPixelPet.Wpf.ViewModels;
 using System.Windows.Controls;
 using System.Windows.Media;
+using System.Windows.Threading;
 
 namespace MusicPetDesktop;
 
@@ -16,6 +17,7 @@ public partial class MainWindow : Window
     private readonly AudioAnalyzerService _audioAnalyzerService = new();
     private readonly SettingsService _settingsService = new();
     private readonly PetFrameAnimator _petFrameAnimator = new();
+    private readonly DispatcherTimer _hoverLeaveTimer;
     private readonly MainViewModel _viewModel;
     private readonly TaskbarIcon _trayIcon = new();
     private SettingsWindow? _settingsWindow;
@@ -26,6 +28,16 @@ public partial class MainWindow : Window
         _viewModel = new MainViewModel(_mediaService, _audioAnalyzerService, _settingsService);
         DataContext = _viewModel;
         InitializeComponent();
+
+        _hoverLeaveTimer = new DispatcherTimer
+        {
+            Interval = TimeSpan.FromMilliseconds(180)
+        };
+        _hoverLeaveTimer.Tick += (_, _) =>
+        {
+            _hoverLeaveTimer.Stop();
+            _viewModel.IsHovered = ShellRoot.IsMouseOver || ControlBarCard.IsMouseOver;
+        };
 
         _viewModel.PropertyChanged += (_, args) =>
         {
@@ -228,14 +240,16 @@ public partial class MainWindow : Window
         return brush;
     }
 
-    private void Window_OnMouseEnter(object sender, MouseEventArgs e)
+    private void HoverSurface_OnMouseEnter(object sender, MouseEventArgs e)
     {
+        _hoverLeaveTimer.Stop();
         _viewModel.IsHovered = true;
     }
 
-    private void Window_OnMouseLeave(object sender, MouseEventArgs e)
+    private void HoverSurface_OnMouseLeave(object sender, MouseEventArgs e)
     {
-        _viewModel.IsHovered = false;
+        _hoverLeaveTimer.Stop();
+        _hoverLeaveTimer.Start();
     }
 
     private void Window_OnMouseLeftButtonDown(object sender, MouseButtonEventArgs e)

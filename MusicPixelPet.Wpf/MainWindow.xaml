@@ -13,9 +13,7 @@
         ShowInTaskbar="False"
         Topmost="{Binding Settings.AlwaysOnTop}"
         Loaded="Window_OnLoaded"
-        MouseLeftButtonDown="Window_OnMouseLeftButtonDown"
-        MouseEnter="Window_OnMouseEnter"
-        MouseLeave="Window_OnMouseLeave">
+        MouseLeftButtonDown="Window_OnMouseLeftButtonDown">
     <Window.Resources>
         <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
         <converters:BooleanToOpacityConverter x:Key="BooleanToOpacityConverter" />
@@ -32,22 +30,24 @@
             <Setter Property="Cursor" Value="Hand" />
             <Setter Property="Foreground" Value="#171717" />
             <Setter Property="Background" Value="#F4F4F1" />
-            <Setter Property="BorderBrush" Value="#D9D9D2" />
-            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="BorderBrush" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+            <Setter Property="OverridesDefaultStyle" Value="True" />
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
                         <Border Background="{TemplateBinding Background}"
                                 BorderBrush="{TemplateBinding BorderBrush}"
                                 BorderThickness="{TemplateBinding BorderThickness}"
-                                CornerRadius="8">
+                                CornerRadius="14">
                             <ContentPresenter HorizontalAlignment="Center"
                                               VerticalAlignment="Center" />
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
                                 <Setter Property="Background" Value="#EFEFEC" />
-                                <Setter Property="BorderBrush" Value="#BEBEB6" />
+                                <Setter Property="BorderBrush" Value="Transparent" />
                             </Trigger>
                             <Trigger Property="IsEnabled" Value="False">
                                 <Setter Property="Opacity" Value="0.45" />
@@ -58,31 +58,51 @@
             </Setter>
         </Style>
 
-        <Style x:Key="IconPath" TargetType="Path">
-            <Setter Property="Width" Value="15" />
-            <Setter Property="Height" Value="15" />
+        <Style x:Key="ControlSymbolIcon" TargetType="{x:Type ui:SymbolIcon}">
+            <Setter Property="FontSize" Value="10" />
+            <Setter Property="Foreground" Value="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" />
+            <Setter Property="HorizontalAlignment" Value="Center" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+
+        <Style x:Key="DrawnIconPath" TargetType="Path">
+            <Setter Property="Width" Value="8" />
+            <Setter Property="Height" Value="8" />
             <Setter Property="Stretch" Value="Uniform" />
             <Setter Property="Stroke" Value="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" />
-            <Setter Property="StrokeThickness" Value="1.8" />
+            <Setter Property="StrokeThickness" Value="1.6" />
             <Setter Property="StrokeStartLineCap" Value="Round" />
             <Setter Property="StrokeEndLineCap" Value="Round" />
             <Setter Property="StrokeLineJoin" Value="Round" />
             <Setter Property="Fill" Value="Transparent" />
         </Style>
+
+        <Style x:Key="SettingsDrawnIconPath" TargetType="Path" BasedOn="{StaticResource DrawnIconPath}">
+            <Setter Property="Width" Value="13" />
+            <Setter Property="Height" Value="13" />
+        </Style>
     </Window.Resources>
 
-    <Grid Opacity="{Binding IsReady, Converter={StaticResource BooleanToOpacityConverter}}">
+    <Grid x:Name="ShellRoot"
+          Background="Transparent"
+          Opacity="{Binding IsReady, Converter={StaticResource BooleanToOpacityConverter}}"
+          MouseEnter="HoverSurface_OnMouseEnter"
+          MouseLeave="HoverSurface_OnMouseLeave">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
-        <ui:Card Grid.Row="0"
-                 Width="192"
-                 Padding="10,9,10,10"
-                 Background="#F5FAFAF8"
-                 PreviewMouseWheel="NowPlayingCard_OnPreviewMouseWheel">
+        <Border Grid.Row="1"
+                Width="192"
+                Padding="10,9,10,10"
+                Background="#FAFAFA"
+                BorderBrush="Transparent"
+                BorderThickness="0"
+                CornerRadius="16"
+                VerticalAlignment="Center"
+                PreviewMouseWheel="NowPlayingCard_OnPreviewMouseWheel">
             <Grid>
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto" />
@@ -106,9 +126,9 @@
                            Margin="0,7,0,0"
                            Style="{StaticResource CardTextBlock}"
                            Text="{Binding StatusTitle}"
-                           FontSize="13"
-                           FontWeight="SemiBold"
-                           LineHeight="17"
+                           FontSize="12"
+                           FontWeight="Normal"
+                           LineHeight="16"
                            MaxHeight="36"
                            TextWrapping="Wrap" />
 
@@ -134,7 +154,7 @@
                     </StackPanel>
 
                     <ProgressBar Width="58"
-                                 Height="4"
+                                 Height="7"
                                  HorizontalAlignment="Right"
                                  VerticalAlignment="Bottom"
                                  Minimum="0"
@@ -145,11 +165,13 @@
                                  BorderBrush="{x:Null}" />
                 </Grid>
             </Grid>
-        </ui:Card>
+        </Border>
 
-        <Grid Grid.Row="1"
+        <Grid Grid.Row="0"
               Width="170"
               Height="146"
+              HorizontalAlignment="Center"
+              VerticalAlignment="Bottom"
               Cursor="Hand"
               MouseLeftButtonDown="PetSurface_OnMouseLeftButtonDown">
             <Image x:Name="PetImage"
@@ -162,40 +184,92 @@
                    RenderOptions.BitmapScalingMode="NearestNeighbor" />
         </Grid>
 
-        <ui:Card Grid.Row="2"
-                 Width="208"
-                 Padding="6"
-                 Margin="0,0,0,12"
-                 Background="#FAFFFFFF"
-                 Opacity="{Binding ControlBarVisible, Converter={StaticResource BooleanToOpacityConverter}}">
+        <Border x:Name="ControlBarCard"
+                Grid.Row="2"
+                Width="208"
+                Padding="6"
+                Margin="0,0,0,12"
+                Background="#FFFFFF"
+                BorderBrush="Transparent"
+                BorderThickness="0"
+                CornerRadius="18"
+                RenderTransformOrigin="0.5,0.5"
+                MouseEnter="HoverSurface_OnMouseEnter"
+                MouseLeave="HoverSurface_OnMouseLeave">
+            <Border.RenderTransform>
+                <TranslateTransform Y="14" />
+            </Border.RenderTransform>
+            <Border.Style>
+                <Style TargetType="{x:Type Border}">
+                    <Setter Property="Opacity" Value="0" />
+                    <Setter Property="IsHitTestVisible" Value="False" />
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding ControlBarVisible}" Value="True">
+                            <Setter Property="IsHitTestVisible" Value="True" />
+                            <DataTrigger.EnterActions>
+                                <BeginStoryboard>
+                                    <Storyboard>
+                                        <DoubleAnimation Storyboard.TargetProperty="Opacity"
+                                                         To="1"
+                                                         Duration="0:0:0.16" />
+                                        <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(TranslateTransform.Y)"
+                                                         To="0"
+                                                         Duration="0:0:0.16">
+                                            <DoubleAnimation.EasingFunction>
+                                                <CubicEase EasingMode="EaseOut" />
+                                            </DoubleAnimation.EasingFunction>
+                                        </DoubleAnimation>
+                                    </Storyboard>
+                                </BeginStoryboard>
+                            </DataTrigger.EnterActions>
+                            <DataTrigger.ExitActions>
+                                <BeginStoryboard>
+                                    <Storyboard>
+                                        <DoubleAnimation Storyboard.TargetProperty="Opacity"
+                                                         To="0"
+                                                         Duration="0:0:0.12" />
+                                        <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(TranslateTransform.Y)"
+                                                         To="14"
+                                                         Duration="0:0:0.12">
+                                            <DoubleAnimation.EasingFunction>
+                                                <CubicEase EasingMode="EaseIn" />
+                                            </DoubleAnimation.EasingFunction>
+                                        </DoubleAnimation>
+                                    </Storyboard>
+                                </BeginStoryboard>
+                            </DataTrigger.ExitActions>
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </Border.Style>
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                <ui:Button Style="{StaticResource IconButton}"
-                           Command="{Binding PreviousCommand}"
-                           IsEnabled="{Binding Media.CanGoPrevious}"
-                           ToolTip="Previous">
-                    <Path Style="{StaticResource IconPath}" Data="M 8 7 L 8 17 M 17 7 L 11 12 L 17 17 Z" />
-                </ui:Button>
+                <Button Style="{StaticResource IconButton}"
+                        Command="{Binding PreviousCommand}"
+                        IsEnabled="{Binding Media.CanGoPrevious}"
+                        ToolTip="Previous">
+                    <Path Style="{StaticResource DrawnIconPath}" Data="M 8 7 L 8 17 M 17 7 L 11 12 L 17 17 Z" />
+                </Button>
 
-                <ui:Button Style="{StaticResource IconButton}"
-                           Margin="6,0,0,0"
-                           Command="{Binding PlayPauseCommand}"
-                           IsEnabled="{Binding Media.CanPlayPause}"
-                           ToolTip="Play/Pause">
+                <Button Style="{StaticResource IconButton}"
+                        Margin="6,0,0,0"
+                        Command="{Binding PlayPauseCommand}"
+                        IsEnabled="{Binding Media.CanPlayPause}"
+                        ToolTip="Play/Pause">
                     <Grid>
-                        <Path Data="M 9 7 L 17 12 L 9 17 Z">
-                            <Path.Style>
-                                <Style TargetType="Path" BasedOn="{StaticResource IconPath}">
+                        <ui:SymbolIcon Symbol="Play20">
+                            <ui:SymbolIcon.Style>
+                                <Style TargetType="{x:Type ui:SymbolIcon}" BasedOn="{StaticResource ControlSymbolIcon}">
                                     <Style.Triggers>
                                         <DataTrigger Binding="{Binding IsPlaying}" Value="True">
                                             <Setter Property="Visibility" Value="Collapsed" />
                                         </DataTrigger>
                                     </Style.Triggers>
                                 </Style>
-                            </Path.Style>
-                        </Path>
-                        <Path Data="M 9 7 L 9 17 M 15 7 L 15 17">
-                            <Path.Style>
-                                <Style TargetType="Path" BasedOn="{StaticResource IconPath}">
+                            </ui:SymbolIcon.Style>
+                        </ui:SymbolIcon>
+                        <ui:SymbolIcon Symbol="Pause20">
+                            <ui:SymbolIcon.Style>
+                                <Style TargetType="{x:Type ui:SymbolIcon}" BasedOn="{StaticResource ControlSymbolIcon}">
                                     <Setter Property="Visibility" Value="Collapsed" />
                                     <Style.Triggers>
                                         <DataTrigger Binding="{Binding IsPlaying}" Value="True">
@@ -203,26 +277,26 @@
                                         </DataTrigger>
                                     </Style.Triggers>
                                 </Style>
-                            </Path.Style>
-                        </Path>
+                            </ui:SymbolIcon.Style>
+                        </ui:SymbolIcon>
                     </Grid>
-                </ui:Button>
+                </Button>
 
-                <ui:Button Style="{StaticResource IconButton}"
-                           Margin="6,0,0,0"
-                           Command="{Binding NextCommand}"
-                           IsEnabled="{Binding Media.CanGoNext}"
-                           ToolTip="Next">
-                    <Path Style="{StaticResource IconPath}" Data="M 16 7 L 16 17 M 7 7 L 13 12 L 7 17 Z" />
-                </ui:Button>
+                <Button Style="{StaticResource IconButton}"
+                        Margin="6,0,0,0"
+                        Command="{Binding NextCommand}"
+                        IsEnabled="{Binding Media.CanGoNext}"
+                        ToolTip="Next">
+                    <Path Style="{StaticResource DrawnIconPath}" Data="M 16 7 L 16 17 M 7 7 L 13 12 L 7 17 Z" />
+                </Button>
 
-                <ui:Button Style="{StaticResource IconButton}"
-                           Margin="6,0,0,0"
-                           Command="{Binding OpenSettingsCommand}"
-                           ToolTip="Settings">
-                    <Path Style="{StaticResource IconPath}" Data="M 8 5.5 L 16 5.5 L 20 12 L 16 18.5 L 8 18.5 L 4 12 Z M 12 9.8 A 2.2 2.2 0 1 1 12 14.2 A 2.2 2.2 0 1 1 12 9.8" />
-                </ui:Button>
+                <Button Style="{StaticResource IconButton}"
+                        Margin="6,0,0,0"
+                        Command="{Binding OpenSettingsCommand}"
+                        ToolTip="Settings">
+                    <Path Style="{StaticResource SettingsDrawnIconPath}" Data="M 8 5.5 L 16 5.5 L 20 12 L 16 18.5 L 8 18.5 L 4 12 Z M 12 9.8 A 2.2 2.2 0 1 1 12 14.2 A 2.2 2.2 0 1 1 12 9.8" />
+                </Button>
             </StackPanel>
-        </ui:Card>
+        </Border>
     </Grid>
 </Window>
