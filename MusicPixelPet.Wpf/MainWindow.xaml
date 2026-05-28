@@ -81,6 +81,16 @@
             <Setter Property="Width" Value="13" />
             <Setter Property="Height" Value="13" />
         </Style>
+
+        <Style x:Key="AudioWaveBar" TargetType="Rectangle">
+            <Setter Property="Width" Value="5" />
+            <Setter Property="Height" Value="5" />
+            <Setter Property="Fill" Value="#242424" />
+            <Setter Property="RadiusX" Value="2.5" />
+            <Setter Property="RadiusY" Value="2.5" />
+            <Setter Property="VerticalAlignment" Value="Bottom" />
+            <Setter Property="SnapsToDevicePixels" Value="True" />
+        </Style>
     </Window.Resources>
 
     <Grid x:Name="ShellRoot"
@@ -143,14 +153,14 @@
                     <StackPanel Orientation="Horizontal"
                                 VerticalAlignment="Bottom"
                                 Height="22">
-                        <Rectangle Width="5" Height="8" Fill="#242424" RadiusX="2.5" RadiusY="2.5" Margin="0,0,4,0" />
-                        <Rectangle Width="5" Height="12" Fill="#242424" RadiusX="2.5" RadiusY="2.5" Margin="0,0,4,0" />
-                        <Rectangle Width="5" Height="17" Fill="#242424" RadiusX="2.5" RadiusY="2.5" Margin="0,0,4,0" />
-                        <Rectangle Width="5" Height="10" Fill="#242424" RadiusX="2.5" RadiusY="2.5" Margin="0,0,4,0" />
-                        <Rectangle Width="5" Height="15" Fill="#242424" RadiusX="2.5" RadiusY="2.5" Margin="0,0,4,0" />
-                        <Rectangle Width="5" Height="20" Fill="#242424" RadiusX="2.5" RadiusY="2.5" Margin="0,0,4,0" />
-                        <Rectangle Width="5" Height="13" Fill="#242424" RadiusX="2.5" RadiusY="2.5" Margin="0,0,4,0" />
-                        <Rectangle Width="5" Height="9" Fill="#242424" RadiusX="2.5" RadiusY="2.5" />
+                        <Rectangle x:Name="WaveBar1" Style="{StaticResource AudioWaveBar}" Margin="0,0,4,0" />
+                        <Rectangle x:Name="WaveBar2" Style="{StaticResource AudioWaveBar}" Margin="0,0,4,0" />
+                        <Rectangle x:Name="WaveBar3" Style="{StaticResource AudioWaveBar}" Margin="0,0,4,0" />
+                        <Rectangle x:Name="WaveBar4" Style="{StaticResource AudioWaveBar}" Margin="0,0,4,0" />
+                        <Rectangle x:Name="WaveBar5" Style="{StaticResource AudioWaveBar}" Margin="0,0,4,0" />
+                        <Rectangle x:Name="WaveBar6" Style="{StaticResource AudioWaveBar}" Margin="0,0,4,0" />
+                        <Rectangle x:Name="WaveBar7" Style="{StaticResource AudioWaveBar}" Margin="0,0,4,0" />
+                        <Rectangle x:Name="WaveBar8" Style="{StaticResource AudioWaveBar}" />
                     </StackPanel>
 
                     <ProgressBar Width="58"

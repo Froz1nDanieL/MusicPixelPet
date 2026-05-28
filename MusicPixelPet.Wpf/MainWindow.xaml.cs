@@ -7,27 +7,43 @@ using MusicPixelPet.Wpf.Services;
 using MusicPixelPet.Wpf.ViewModels;
 using System.Windows.Controls;
 using System.Windows.Media;
+using System.Windows.Media.Animation;
+using System.Windows.Shapes;
 using System.Windows.Threading;
 
 namespace MusicPetDesktop;
 
 public partial class MainWindow : Window
 {
+    private static readonly double[] PausedWaveHeights = [5, 7, 5, 8, 6, 5, 7, 5];
+    private static readonly double[][] PlayingWavePatterns =
+    [
+        [8, 13, 18, 10, 15, 20, 12, 9],
+        [15, 9, 12, 20, 11, 16, 18, 8],
+        [10, 18, 14, 9, 20, 12, 8, 16],
+        [18, 12, 8, 15, 10, 20, 14, 9],
+        [9, 16, 20, 12, 18, 10, 15, 8]
+    ];
+
     private readonly MediaService _mediaService = new();
     private readonly AudioAnalyzerService _audioAnalyzerService = new();
     private readonly SettingsService _settingsService = new();
     private readonly PetFrameAnimator _petFrameAnimator = new();
     private readonly DispatcherTimer _hoverLeaveTimer;
+    private readonly DispatcherTimer _waveformTimer;
+    private readonly Rectangle[] _waveBars;
     private readonly MainViewModel _viewModel;
     private readonly TaskbarIcon _trayIcon = new();
     private SettingsWindow? _settingsWindow;
     private bool _isQuitting;
+    private int _waveformStep;
 
     public MainWindow()
     {
         _viewModel = new MainViewModel(_mediaService, _audioAnalyzerService, _settingsService);
         DataContext = _viewModel;
         InitializeComponent();
+        _waveBars = [WaveBar1, WaveBar2, WaveBar3, WaveBar4, WaveBar5, WaveBar6, WaveBar7, WaveBar8];
 
         _hoverLeaveTimer = new DispatcherTimer
         {
@@ -39,17 +55,29 @@ public partial class MainWindow : Window
             _viewModel.IsHovered = ShellRoot.IsMouseOver || ControlBarCard.IsMouseOver;
         };
 
+        _waveformTimer = new DispatcherTimer(DispatcherPriority.Render)
+        {
+            Interval = TimeSpan.FromMilliseconds(120)
+        };
+        _waveformTimer.Tick += (_, _) => UpdatePlayingWaveform();
+
         _viewModel.PropertyChanged += (_, args) =>
         {
             if (args.PropertyName == nameof(MainViewModel.CurrentAnimation))
             {
                 _petFrameAnimator.SetAnimation(_viewModel.CurrentAnimation);
             }
+
+            if (args.PropertyName == nameof(MainViewModel.IsPlaying))
+            {
+                UpdateWaveformPlaybackState();
+            }
         };
 
         _viewModel.OpenSettingsRequested += (_, _) => OpenSettingsWindow();
         _petFrameAnimator.FrameChanged += (_, frame) => _viewModel.PetFrame = frame;
         _petFrameAnimator.Start();
+        UpdateWaveformPlaybackState();
         InitializeTray();
     }
 
@@ -68,6 +96,7 @@ public partial class MainWindow : Window
 
     protected override void OnClosed(EventArgs e)
     {
+        _waveformTimer.Stop();
         _trayIcon.Dispose();
         _petFrameAnimator.Dispose();
         _audioAnalyzerService.Dispose();
@@ -238,6 +267,49 @@ public partial class MainWindow : Window
         var brush = new SolidColorBrush((Color)ColorConverter.ConvertFromString(color));
         brush.Freeze();
         return brush;
+    }
+
+    private void UpdateWaveformPlaybackState()
+    {
+        if (_viewModel.IsPlaying)
+        {
+            _waveformTimer.Start();
+            UpdatePlayingWaveform();
+            return;
+        }
+
+        _waveformTimer.Stop();
+        AnimateWaveBars(PausedWaveHeights, TimeSpan.FromMilliseconds(180));
+    }
+
+    private void UpdatePlayingWaveform()
+    {
+        var pattern = PlayingWavePatterns[_waveformStep % PlayingWavePatterns.Length];
+        var audioBoost = Math.Clamp(_viewModel.AudioLevel * 45, 0, 5);
+        var heights = new double[_waveBars.Length];
+
+        for (var index = 0; index < _waveBars.Length; index += 1)
+        {
+            var alternatingBoost = index % 2 == _waveformStep % 2 ? audioBoost : 0;
+            heights[index] = Math.Clamp(pattern[index] + alternatingBoost, 5, 22);
+        }
+
+        _waveformStep += 1;
+        AnimateWaveBars(heights, TimeSpan.FromMilliseconds(115));
+    }
+
+    private void AnimateWaveBars(IReadOnlyList<double> heights, TimeSpan duration)
+    {
+        for (var index = 0; index < _waveBars.Length; index += 1)
+        {
+            var animation = new DoubleAnimation
+            {
+                To = heights[index],
+                Duration = new Duration(duration),
+                EasingFunction = new QuadraticEase { EasingMode = EasingMode.EaseOut }
+            };
+            _waveBars[index].BeginAnimation(FrameworkElement.HeightProperty, animation, HandoffBehavior.SnapshotAndReplace);
+        }
     }
 
     private void HoverSurface_OnMouseEnter(object sender, MouseEventArgs e)
