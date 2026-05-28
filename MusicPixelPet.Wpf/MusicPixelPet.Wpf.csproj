@@ -21,8 +21,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Content Include="..\public\assets\pet\default\*.svg"
-             Link="Assets\Pet\default\%(Filename)%(Extension)"
-             CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="Assets\Pet\*.png"
+             CopyToOutputDirectory="PreserveNewest"
+             CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

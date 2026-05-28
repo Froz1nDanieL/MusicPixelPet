@@ -4,14 +4,20 @@ using MusicPixelPet.Wpf.Models;
 using MusicPixelPet.Wpf.Pet;
 using MusicPixelPet.Wpf.Services;
 using System.Windows;
+using System.Windows.Media;
 
 namespace MusicPixelPet.Wpf.ViewModels;
 
 public partial class MainViewModel : ObservableObject
 {
+    private static readonly TimeSpan BeatAnimationArmDelay = TimeSpan.FromMilliseconds(900);
+    private static readonly TimeSpan BeatAnimationMinGap = TimeSpan.FromMilliseconds(900);
+
     private readonly MediaService _mediaService;
     private readonly AudioAnalyzerService _audioAnalyzerService;
     private readonly SettingsService _settingsService;
+    private DateTimeOffset _playingAnimationEnteredAt = DateTimeOffset.MinValue;
+    private DateTimeOffset _lastBeatAnimationAt = DateTimeOffset.MinValue;
 
     [ObservableProperty]
     private AppSettings settings = AppSettings.CreateDefault();
@@ -27,6 +33,9 @@ public partial class MainViewModel : ObservableObject
 
     [ObservableProperty]
     private PetAnimationId currentAnimation = PetAnimationId.Idle;
+
+    [ObservableProperty]
+    private ImageSource? petFrame;
 
     [ObservableProperty]
     private float audioLevel;
@@ -45,11 +54,14 @@ public partial class MainViewModel : ObservableObject
         {
             RunOnUiThread(() =>
             {
-                if (CurrentAnimation == PetAnimationId.Playing)
+                if (!CanShowBeatAnimation())
                 {
-                    CurrentAnimation = PetAnimationId.Celebrating;
-                    _ = ReturnToPlayingAfterBeatAsync();
+                    return;
                 }
+
+                _lastBeatAnimationAt = DateTimeOffset.Now;
+                CurrentAnimation = PetAnimationId.Celebrating;
+                _ = ReturnToPlayingAfterBeatAsync();
             });
         };
     }
@@ -109,6 +121,14 @@ public partial class MainViewModel : ObservableObject
         OnPropertyChanged(nameof(ControlBarVisible));
     }
 
+    partial void OnCurrentAnimationChanged(PetAnimationId value)
+    {
+        if (value == PetAnimationId.Playing)
+        {
+            _playingAnimationEnteredAt = DateTimeOffset.Now;
+        }
+    }
+
     [RelayCommand]
     private Task PlayPauseAsync()
     {
@@ -150,6 +170,15 @@ public partial class MainViewModel : ObservableObject
         {
             CurrentAnimation = PetAnimationRules.Derive(Media, Settings.MusicRules);
         }
+    }
+
+    private bool CanShowBeatAnimation()
+    {
+        var now = DateTimeOffset.Now;
+        return Media.Status == PlaybackStatus.Playing
+            && CurrentAnimation == PetAnimationId.Playing
+            && now - _playingAnimationEnteredAt >= BeatAnimationArmDelay
+            && now - _lastBeatAnimationAt >= BeatAnimationMinGap;
     }
 
     private void OnMediaDependentPropertiesChanged()

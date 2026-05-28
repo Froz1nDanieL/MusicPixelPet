@@ -174,12 +174,12 @@
               VerticalAlignment="Bottom"
               Cursor="Hand"
               MouseLeftButtonDown="PetSurface_OnMouseLeftButtonDown">
-            <Image x:Name="PetImage"
+            <Image Source="{Binding PetFrame}"
                    Width="128"
                    Height="128"
                    HorizontalAlignment="Center"
                    VerticalAlignment="Bottom"
-                   Stretch="None"
+                   Stretch="Fill"
                    SnapsToDevicePixels="True"
                    RenderOptions.BitmapScalingMode="NearestNeighbor" />
         </Grid>

@@ -48,7 +48,7 @@ public partial class MainWindow : Window
         };
 
         _viewModel.OpenSettingsRequested += (_, _) => OpenSettingsWindow();
-        _petFrameAnimator.FrameChanged += (_, frame) => PetImage.Source = frame;
+        _petFrameAnimator.FrameChanged += (_, frame) => _viewModel.PetFrame = frame;
         _petFrameAnimator.Start();
         InitializeTray();
     }
