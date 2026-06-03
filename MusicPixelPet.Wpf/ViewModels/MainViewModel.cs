@@ -20,6 +20,8 @@ public partial class MainViewModel : ObservableObject, IDisposable
     private readonly SettingsService _settingsService;
     private readonly PetAnimationRules _petAnimationRules = new();
     private readonly object _audioStateSyncRoot = new();
+    private readonly float[] _latestMfcc = new float[SpectrumData.MfccLength];
+    private readonly float[] _uiMfcc = new float[SpectrumData.MfccLength];
     private readonly DispatcherTimer _spectrumUiTimer;
     private readonly DispatcherTimer _vibeEvaluationTimer;
     private SpectrumData _latestSpectrum;
@@ -62,6 +64,8 @@ public partial class MainViewModel : ObservableObject, IDisposable
         _mediaService = mediaService;
         _audioAnalyzerService = audioAnalyzerService;
         _settingsService = settingsService;
+        _latestSpectrum = new SpectrumData(0, 0, 0, 0, _latestMfcc);
+        spectrum = new SpectrumData(0, 0, 0, 0, _uiMfcc);
         _spectrumUiTimer = new DispatcherTimer(DispatcherPriority.Render)
         {
             Interval = SpectrumUiInterval
@@ -202,7 +206,14 @@ public partial class MainViewModel : ObservableObject, IDisposable
     {
         lock (_audioStateSyncRoot)
         {
-            _latestSpectrum = data;
+            _latestSpectrum.Rms = data.Rms;
+            _latestSpectrum.Bass = data.Bass;
+            _latestSpectrum.Mid = data.Mid;
+            _latestSpectrum.High = data.High;
+            _latestSpectrum.Centroid = data.Centroid;
+            _latestSpectrum.Flux = data.Flux;
+            _latestSpectrum.Rolloff = data.Rolloff;
+            CopyMfcc(data.Mfcc, _latestSpectrum.Mfcc);
             _hasPendingSpectrum = true;
         }
     }
@@ -234,7 +245,16 @@ public partial class MainViewModel : ObservableObject, IDisposable
                 return;
             }
 
-            nextSpectrum = _latestSpectrum;
+            CopyMfcc(_latestSpectrum.Mfcc, _uiMfcc);
+            nextSpectrum = new SpectrumData(
+                _latestSpectrum.Rms,
+                _latestSpectrum.Bass,
+                _latestSpectrum.Mid,
+                _latestSpectrum.High,
+                _uiMfcc,
+                _latestSpectrum.Centroid,
+                _latestSpectrum.Flux,
+                _latestSpectrum.Rolloff);
             _hasPendingSpectrum = false;
         }
 
@@ -265,6 +285,21 @@ public partial class MainViewModel : ObservableObject, IDisposable
         }
 
         return string.IsNullOrWhiteSpace(album) ? artist : $"{artist} · {album}";
+    }
+
+    private static void CopyMfcc(float[]? source, float[] target)
+    {
+        if (source is null)
+        {
+            Array.Clear(target);
+            return;
+        }
+
+        var count = Math.Min(SpectrumData.MfccLength, Math.Min(source.Length, target.Length));
+        for (var index = 0; index < count; index += 1)
+        {
+            target[index] = source[index];
+        }
     }
 
     private static void RunOnUiThread(Action action)
