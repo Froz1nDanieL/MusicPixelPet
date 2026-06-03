@@ -98,6 +98,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
     public string StatusSubtitle => HasTrack ? TrackSubtitle : Media.ErrorMessage ?? "启动支持的播放器后，桌宠会自动接管状态显示。";
     public double VolumeLevel => Math.Clamp(Media.VolumeLevel, 0, 1);
     public bool IsPlaying => Media.Status == PlaybackStatus.Playing;
+    public string CurrentVibeLabel => PetAnimationRules.GetVibeDisplayName(CurrentVibe);
 
     public async Task InitializeAsync()
     {
@@ -141,6 +142,11 @@ public partial class MainViewModel : ObservableObject, IDisposable
     partial void OnIsHoveredChanged(bool value)
     {
         OnPropertyChanged(nameof(ControlBarVisible));
+    }
+
+    partial void OnCurrentVibeChanged(MusicVibe value)
+    {
+        OnPropertyChanged(nameof(CurrentVibeLabel));
     }
 
     [RelayCommand]
@@ -210,6 +216,11 @@ public partial class MainViewModel : ObservableObject, IDisposable
             _latestSpectrum.Bass = data.Bass;
             _latestSpectrum.Mid = data.Mid;
             _latestSpectrum.High = data.High;
+            _latestSpectrum.SubBass = data.SubBass;
+            _latestSpectrum.LowMid = data.LowMid;
+            _latestSpectrum.Presence = data.Presence;
+            _latestSpectrum.Air = data.Air;
+            _latestSpectrum.HighMid = data.HighMid;
             _latestSpectrum.Centroid = data.Centroid;
             _latestSpectrum.Flux = data.Flux;
             _latestSpectrum.Rolloff = data.Rolloff;
@@ -255,6 +266,11 @@ public partial class MainViewModel : ObservableObject, IDisposable
                 _latestSpectrum.Centroid,
                 _latestSpectrum.Flux,
                 _latestSpectrum.Rolloff);
+            nextSpectrum.SubBass = _latestSpectrum.SubBass;
+            nextSpectrum.LowMid = _latestSpectrum.LowMid;
+            nextSpectrum.Presence = _latestSpectrum.Presence;
+            nextSpectrum.Air = _latestSpectrum.Air;
+            nextSpectrum.HighMid = _latestSpectrum.HighMid;
             _hasPendingSpectrum = false;
         }
 

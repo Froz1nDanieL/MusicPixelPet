@@ -272,6 +272,11 @@ public sealed class AudioAnalyzerService : IDisposable
         result.Bass = CalculateBandMagnitude(magnitudeSpectrum, sampleRate, 20, 250);
         result.Mid = CalculateBandMagnitude(magnitudeSpectrum, sampleRate, 250, 4000);
         result.High = CalculateBandMagnitude(magnitudeSpectrum, sampleRate, 4000, 20000);
+        result.SubBass = CalculateBandMagnitude(magnitudeSpectrum, sampleRate, 20, 60);
+        result.LowMid = CalculateBandMagnitude(magnitudeSpectrum, sampleRate, 250, 500);
+        result.Presence = CalculateBandMagnitude(magnitudeSpectrum, sampleRate, 2000, 6000);
+        result.Air = CalculateBandMagnitude(magnitudeSpectrum, sampleRate, 8000, 16000);
+        result.HighMid = CalculateBandMagnitude(magnitudeSpectrum, sampleRate, 2000, 4000);
         result.Mfcc = mfcc;
         result.Centroid = centroidExtractor.ProcessFrame(magnitudeSpectrum, sampleRate);
         result.Flux = fluxExtractor.ProcessFrame(
@@ -367,6 +372,11 @@ public sealed class AudioAnalyzerService : IDisposable
             _smoothedSpectrum.Bass = next.Bass;
             _smoothedSpectrum.Mid = next.Mid;
             _smoothedSpectrum.High = next.High;
+            _smoothedSpectrum.SubBass = next.SubBass;
+            _smoothedSpectrum.LowMid = next.LowMid;
+            _smoothedSpectrum.Presence = next.Presence;
+            _smoothedSpectrum.Air = next.Air;
+            _smoothedSpectrum.HighMid = next.HighMid;
             _smoothedSpectrum.Centroid = next.Centroid;
             _smoothedSpectrum.Flux = next.Flux;
             _smoothedSpectrum.Rolloff = next.Rolloff;
@@ -379,6 +389,11 @@ public sealed class AudioAnalyzerService : IDisposable
         _smoothedSpectrum.Bass = LowPass(next.Bass, _smoothedSpectrum.Bass);
         _smoothedSpectrum.Mid = LowPass(next.Mid, _smoothedSpectrum.Mid);
         _smoothedSpectrum.High = LowPass(next.High, _smoothedSpectrum.High);
+        _smoothedSpectrum.SubBass = LowPass(next.SubBass, _smoothedSpectrum.SubBass);
+        _smoothedSpectrum.LowMid = LowPass(next.LowMid, _smoothedSpectrum.LowMid);
+        _smoothedSpectrum.Presence = LowPass(next.Presence, _smoothedSpectrum.Presence);
+        _smoothedSpectrum.Air = LowPass(next.Air, _smoothedSpectrum.Air);
+        _smoothedSpectrum.HighMid = LowPass(next.HighMid, _smoothedSpectrum.HighMid);
         _smoothedSpectrum.Centroid = LowPassSpectral(next.Centroid, _smoothedSpectrum.Centroid);
         _smoothedSpectrum.Flux = LowPassSpectral(next.Flux, _smoothedSpectrum.Flux);
         _smoothedSpectrum.Rolloff = LowPassSpectral(next.Rolloff, _smoothedSpectrum.Rolloff);

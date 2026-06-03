@@ -6,3 +6,4 @@ release-tmp/
 .tmp/
 .vs/
 Tools/
+DevelopDoc/command.txt

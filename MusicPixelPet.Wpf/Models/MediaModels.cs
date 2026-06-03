@@ -11,12 +11,13 @@ public enum PlaybackStatus
 public enum MusicVibe
 {
     Silence,
-    AmbientOrClassical,
-    AcousticOrFolk,
-    RnbOrSoul,
-    Pop,
-    RockOrMetal,
-    ElectronicOrHipHop
+    CalmOrchestral,
+    SoftOrganic,
+    WarmGroove,
+    Neutral,
+    BrightEnergy,
+    BeatDriven,
+    DarkHeavy
 }
 
 public sealed record MediaTrack(
@@ -97,6 +98,11 @@ public record struct SpectrumData
     public float Centroid { get; set; }
     public float Flux { get; set; }
     public float Rolloff { get; set; }
+    public float SubBass { get; set; }
+    public float LowMid { get; set; }
+    public float Presence { get; set; }
+    public float Air { get; set; }
+    public float HighMid { get; set; }
 }
 
 public sealed class BeatEventArgs : EventArgs
